@@ -30,6 +30,7 @@ My progress:
 - [x] Create, Edit, Delete events
 - [x] Create many other items
 - [x] Create templates
+- [ ] Choose a logger and log stuff instead of printing it
 - [ ] Edit, Delete templates
 - [ ] Messaging
 - [ ] Notifications
