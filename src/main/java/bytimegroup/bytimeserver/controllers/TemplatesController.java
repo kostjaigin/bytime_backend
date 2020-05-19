@@ -1,6 +1,7 @@
 package bytimegroup.bytimeserver.controllers;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import bytimegroup.bytimeserver.models.ChangeEntry;
+import bytimegroup.bytimeserver.models.Delta;
 import bytimegroup.bytimeserver.models.Events;
 import bytimegroup.bytimeserver.models.Templates;
 import bytimegroup.bytimeserver.models.Users;
@@ -50,21 +51,34 @@ public class TemplatesController {
 		return templatesService.storeTemplate(template, usersService.getCurrentUser());
 	}
 	
+	/**
+	 * @param changed datetime when crud operation was performed on the client side (passed to resolve possible conflicts)
+	 * @param entityId
+	 * @param changes
+	 * @return
+	 */
 	@PutMapping("/templates")
-	public ResponseEntity<String> updateTemplate(@RequestBody ChangeEntry entry) {
-		// CRUD type should be update, otherwise it is a wrong way to request
-		if (entry.getCrudType().equalsIgnoreCase("U") == false) {
-			return new ResponseEntity<String>("Wrong usage of REST API", HttpStatus.BAD_REQUEST);
+	public ResponseEntity<String> updateTemplate(@RequestParam(value = "changed", defaultValue = "") String changed, 
+			@RequestParam(value = "entityId", defaultValue = "") String entityId, @RequestBody List<Delta> changes) {
+		// check that entity id is provided
+		if (entityId.isEmpty()) {
+			return new ResponseEntity<String>("No entity id provided\r\n", HttpStatus.BAD_REQUEST);
 		}
-		// we handle only events here
-		if (entry.getEntityType().equalsIgnoreCase("template") == false) {
-			return new ResponseEntity<String>("Wrong http path", HttpStatus.BAD_REQUEST);
+		// try to perform all updates
+		String response = "Performed changes:\n";
+		// iterate through deltas, try to perform an update and extend response body
+		for (Delta change: changes) {
+			try {
+				if (templatesService.updateTemplate(entityId, change, usersService.getCurrentUser())) {
+					response += change.getField() + " OK\n";
+				} else {
+					response += change.getField() + " FAILURE\n";
+				}
+			} catch (NoSuchElementException nsee) {
+				return new ResponseEntity<String>(entityId+" item cannot be found in DB\r\n", HttpStatus.NOT_FOUND);
+			}
 		}
-		// try to update
-		if (templatesService.updateTemplate(entry, usersService.getCurrentUser())) {
-			return new ResponseEntity<String>("OK", HttpStatus.OK);
-		}
-		return new ResponseEntity<String>("Bad bad request!", HttpStatus.BAD_REQUEST);
+		return new ResponseEntity<String>(response, HttpStatus.OK);
 	}
 	
 	@DeleteMapping("/templates")

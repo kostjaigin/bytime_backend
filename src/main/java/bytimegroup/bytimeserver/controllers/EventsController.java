@@ -1,6 +1,7 @@
 package bytimegroup.bytimeserver.controllers;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import bytimegroup.bytimeserver.models.ChangeEntry;
+import bytimegroup.bytimeserver.models.Delta;
 import bytimegroup.bytimeserver.models.Events;
 import bytimegroup.bytimeserver.models.Roles;
 import bytimegroup.bytimeserver.models.Users;
@@ -48,6 +49,7 @@ public class EventsController {
 	 * Create new event request.
 	 * Without id since not stored yet.
 	 * @return stored event with id provided by saving.
+	 * @param event json formed event entity without id (global id has to be assigned on the server side)
 	 */
 	@PostMapping("/events")
 	public Events createEvent(@RequestBody Events event) {
@@ -56,24 +58,33 @@ public class EventsController {
 	
 	/**
 	 * Edit event.
-	 * @param events
-	 * @return
+	 * @param entityId 
+	 * @param changed datetime when crud operation was performed on the client side (passed to resolve possible conflicts)
+	 * @param changes
+	 * @return HTTP response
 	 */
 	@PutMapping("/events")
-	public ResponseEntity<String> updateEvent(@RequestBody ChangeEntry entry) {
-		// CRUD type should be update, otherwise it is a wrong way to request
-		if (entry.getCrudType().equalsIgnoreCase("U") == false) {
-			return new ResponseEntity<String>("Wrong usage of REST API", HttpStatus.BAD_REQUEST);
+	public ResponseEntity<String> updateEvent(@RequestParam(value = "changed", defaultValue = "") String changed, 
+			@RequestParam(value = "entityId", defaultValue = "") String entityId, @RequestBody List<Delta> changes) {
+		// check that entity id is provided
+		if (entityId.isEmpty()) {
+			return new ResponseEntity<String>("No entity id provided\r\n", HttpStatus.BAD_REQUEST);
 		}
-		// we handle only events here
-		if (entry.getEntityType().equalsIgnoreCase("event") == false) {
-			return new ResponseEntity<String>("Wrong http path", HttpStatus.BAD_REQUEST);
+		// try to perform all updates
+		String response = "Performed changes:\n";
+		// iterate through deltas, try to perform an update and extend response body
+		for (Delta change: changes) {
+			try {
+				if (eventsService.updateEvent(entityId, change, usersService.getCurrentUser())) {
+					response += change.getField() + " OK\n";
+				} else {
+					response += change.getField() + " FAILURE\n";
+				}
+			} catch (NoSuchElementException nsee) {
+				return new ResponseEntity<String>(entityId+" item cannot be found in DB\r\n", HttpStatus.NOT_FOUND);
+			}
 		}
-		// try to update
-		if (eventsService.updateEvent(entry, usersService.getCurrentUser())) {
-			return new ResponseEntity<String>("OK", HttpStatus.OK);
-		}
-		return new ResponseEntity<String>("Bad bad request!", HttpStatus.BAD_REQUEST);
+		return new ResponseEntity<String>(response, HttpStatus.OK);
 	}
 	
 	/**

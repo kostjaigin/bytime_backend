@@ -8,8 +8,8 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import bytimegroup.bytimeserver.models.ChangeEntry;
 import bytimegroup.bytimeserver.models.Chats;
+import bytimegroup.bytimeserver.models.Delta;
 import bytimegroup.bytimeserver.models.Roles;
 import bytimegroup.bytimeserver.models.Templates;
 import bytimegroup.bytimeserver.models.Users;
@@ -88,22 +88,24 @@ public class TemplatesService {
 //		}
 //	}
 	
-	public Boolean updateTemplate(ChangeEntry entry, Users user) throws AccessDeniedException  {
+	/**
+	 * @param entityId
+	 * @param change
+	 * @param user
+	 * @return
+	 * @throws AccessDeniedException
+	 * @throws NoSuchElementException if entityId unvalid
+	 */
+	public Boolean updateTemplate(String entityId, Delta change, Users user) throws AccessDeniedException, NoSuchElementException  {
 		// check if entry is valid
-		Templates template;
-		try {
-			template = templatesRepository.findById(entry.getEntityId()).get();
-		} catch (NoSuchElementException nsee) {
-			System.out.println("Template user wanted to update does not exist in db...");
-			return false;
-		}
+		Templates template = templatesRepository.findById(entityId).get();
 		// check if permission is sufficient to perform an update
-		Roles userTemplateRole = rolesRepository.findByEntityIdAndUserId(entry.getEntityId(), user.getID());
+		Roles userTemplateRole = rolesRepository.findByEntityIdAndUserId(entityId, user.getID());
 		if (userTemplateRole == null || userTemplateRole.getAccessLevelCode() < 70) {
 			throw new AccessDeniedException();
 		}
 		// try to perform an update
-		switch (entry.getField().toLowerCase()) {
+		switch (change.getField().toLowerCase()) {
 		}
 		
 		template = templatesRepository.save(template);

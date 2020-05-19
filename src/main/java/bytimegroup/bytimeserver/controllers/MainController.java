@@ -104,6 +104,7 @@ public class MainController {
 	 * private and public calendars, roles, 
 	 * welcome event and welcome template.
 	 * TODO try catch blocks to prevent abort of registration
+	 * 	delete all possibly created stuff if an abort happens
 	 */
 	private void createModelsFor(Users newuser) {
 		// initial calendars

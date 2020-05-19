@@ -3,8 +3,10 @@ package bytimegroup.bytimeserver.controllers;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,6 +44,19 @@ public class UsersController {
 	@GetMapping("/currentuser")
 	public Users getUser() {
 		return usersService.getCurrentUser();
+	}
+	
+	/**
+	 * Called when user subscribes for someone new
+	 * TODO make use ready
+	 * TODO check if subscription must be allowed
+	 * 	and pend request to subscribe if so
+	 * @param username of target i want to subscribe to
+	 * @return
+	 */
+	@PostMapping("/subscriptions")
+	public ResponseEntity<String> addSubscription(@RequestParam(value = "username", defaultValue = "") String username) {
+		return new ResponseEntity<String>("Bad bad request", HttpStatus.BAD_REQUEST);
 	}
 	
 }

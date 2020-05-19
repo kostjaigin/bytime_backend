@@ -14,8 +14,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import bytimegroup.bytimeserver.models.Calendars;
-import bytimegroup.bytimeserver.models.ChangeEntry;
 import bytimegroup.bytimeserver.models.Chats;
+import bytimegroup.bytimeserver.models.Delta;
 import bytimegroup.bytimeserver.models.Events;
 import bytimegroup.bytimeserver.models.Roles;
 import bytimegroup.bytimeserver.models.Users;
@@ -133,26 +133,21 @@ public class EventsService {
 	   * @param user
 	   * @return
 	   * @throws AccessDeniedException
+	   * @throws NoSuchElementException if entityId is unvalid
 	   */
-	  public Boolean updateEvent(ChangeEntry entry, Users user) throws AccessDeniedException {
-		  // check if entry is valid
-		  Events event;
-		  try {
-			  event = eventsRepository.findById(entry.getEntityId()).get();
-		  } catch (NoSuchElementException nsee) {
-			  System.out.println("Event user wanted to update does not exist in DB...");
-			  return false;
-		  }
+	  public Boolean updateEvent(String entityId, Delta change, Users user) throws AccessDeniedException, NoSuchElementException {
+		  // resolve entity
+		  Events event = eventsRepository.findById(entityId).get();
 		  // check if permission is sufficient to perform an update
-		  Roles userEventRole = rolesRepository.findByEntityIdAndUserId(entry.getEntityId(), user.getID());
+		  Roles userEventRole = rolesRepository.findByEntityIdAndUserId(entityId, user.getID());
 		  if (userEventRole == null || userEventRole.getAccessLevelCode() < 70) {
 			  throw new AccessDeniedException();
 		  }
 		  // try to perform an update
-		  switch (entry.getField().toLowerCase()) {
+		  switch (change.getField().toLowerCase()) {
 			  case "startdate":
 					try {
-						LocalDateTime newStart = LocalDateTime.parse(entry.getNewValue());
+						LocalDateTime newStart = LocalDateTime.parse(change.getNewValue());
 						event.setStartDate(newStart);
 					} catch (DateTimeParseException dtpe) {
 						System.out.println("Cannot read input start date...");
@@ -161,15 +156,15 @@ public class EventsService {
 					break;
 			  case "enddate":
 				  try {
-					  LocalDateTime newEnd = LocalDateTime.parse(entry.getNewValue());
+					  LocalDateTime newEnd = LocalDateTime.parse(change.getNewValue());
 					  event.setEndDate(newEnd);
 				  } catch (DateTimeParseException dtpe) {
 					  return false;
 				  }
 				  break;
 			  case "calendarid":
-				  if (calendarsRepository.existsById(entry.getNewValue())) {
-					  event.setCalendarId(entry.getNewValue());
+				  if (calendarsRepository.existsById(change.getNewValue())) {
+					  event.setCalendarId(change.getNewValue());
 				  } else {
 					  return false;
 				  }
