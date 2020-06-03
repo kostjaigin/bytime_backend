@@ -5,10 +5,12 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * todo: insert @AliasFor spring annotation for smoother interaction with mongo
  */
+@Document
 public class Users {
 	
 	@Id private ObjectId _id;

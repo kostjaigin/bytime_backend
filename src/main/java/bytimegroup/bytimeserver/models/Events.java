@@ -6,11 +6,13 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  * todo: insert @AliasFor spring annotation
  * Represents event document from mongo
  */
+@Document
 public class Events extends EntityBase {
 	
 	private LocalDateTime startDate;
